@@ -1,23 +1,28 @@
-from flask import Flask
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
-from services import user_blueprint  # Replace with the actual package name
+from services.claude import ClaudeService
 
-# Create a Flask app instance
 app = Flask(__name__)
 
-# Enable CORS for all routes
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5000"}})
+CORS(app)
 
-# Register the user blueprint
-app.register_blueprint(user_blueprint, url_prefix='/api')
-
-
-# Define a GET endpoint
 @app.route('/', methods=['GET'])
 def hello_world():
     return "Hello, World!"
 
+@app.route('/api/bake-budget-item', methods=['POST'])
+def stream_logs():
+    prompt = request.json.get("prompt", "")
 
-# Run the server
+    claude_service = ClaudeService()
+
+    response_stream = claude_service.generate_response(prompt)
+
+    def generate():
+        for text in response_stream:
+            yield text
+
+    return Response(generate(), content_type="text/plain")
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
